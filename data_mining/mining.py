@@ -19,11 +19,13 @@ REGIONS_ROUTING = {
 }
 
 class DataMiner():
-    def __init__(self,api_key,region='euw1'):
+    def __init__(self,api_key,name,n=20000,region='euw1'):
         self.api_key = api_key
         self.watcher = rw.LolWatcher(api_key)
         self.region = region
         self.region_routed = REGIONS_ROUTING[region]
+        self.name = name
+        self.n_summoner = n
 
         self.matches_data = []
         self.users_data = []
@@ -31,8 +33,8 @@ class DataMiner():
     def save(self):
         df_users = pd.DataFrame(self.users_data)
         df_matches = pd.DataFrame(self.matches_data)
-        df_users.to_csv(f'summoners_{self.region}.csv')
-        df_matches.to_csv(f'matches_{self.region}.csv')
+        df_users.to_csv(f'summoners_{self.name}.csv')
+        df_matches.to_csv(f'matches_{self.name}.csv')
         print('Saved!')
 
     def get_user_matches(self,user_puuid,user_id,n=50):
@@ -90,6 +92,7 @@ class DataMiner():
         data = {}
         matchinfo = matchdto['info']
         data['gameId'] = matchinfo['gameId']
+        data['duration'] = matchinfo['gameDuration']
 
         # Get winner team id
         for team in matchinfo['teams']:
@@ -107,6 +110,11 @@ class DataMiner():
             data[f'summoner_{i}_summoner2Id'] = participant['summoner2Id']
             data[f'summoner_{i}_primaryStyle'] = participant['perks']['styles'][0]['style']
             data[f'summoner_{i}_subStyle'] = participant['perks']['styles'][1]['style']
+            # Annotations : this part of the data are not to be used as input
+            data[f'summoner_{i}_gold'] = participant['goldEarned']
+            data[f'summoner_{i}_kills'] = participant['kills']
+            data[f'summoner_{i}_deaths'] = participant['deaths']
+            data[f'summoner_{i}_assists'] = participant['assists']
             
         # Add ban datas
         for team in matchinfo['teams']:
@@ -131,7 +139,7 @@ class DataMiner():
 
         # Mine data
         counter = 0
-        while (not user_queue.empty()) and (user_queue.qsize() < 10000): # 10000 = it should take 11 hours to get remaining user data
+        while (not user_queue.empty()) and (user_queue.qsize() < self.n_summoner): # 10000 = it should take 11 hours to get remaining user data
             # Get new user matchlist
             user_puuid, user_id = user_queue.get()
             try:
@@ -200,15 +208,24 @@ if __name__ == '__main__':
     parser.add_argument(
         '--key',
         help='Riot API key',
-        default='RGAPI-dd631df5-30c4-40f9-b298-cafb92af6e88'
+        default=''
     )
     parser.add_argument(
         '--region',
         help='Region',
         default='euw1'
     )
+    parser.add_argument(
+        '--n',
+        help='Number of summoners to mine',
+        default=25000
+    )
+    parser.add_argument(
+        '--name',
+        help='Name'
+    )
     args = parser.parse_args()
 
-    miner = DataMiner(args.key,args.region)
+    miner = DataMiner(args.key,args.name,args.n,args.region)
     miner.mine(args.init)
     
