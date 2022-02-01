@@ -27,9 +27,11 @@ for summoner in range(10):
     continuous_features.append(f'summoner_{summoner}_wr')
     # continuous_features.append(f'summoner_{summoner}_nb')
 
+'''
 # Only keep necessary features
 all_features = ['winner'] + categorical_features + continuous_features
 df = df[all_features]
+'''
 
 feature_groups = {
     # 'team_1_level': [f'summoner_{summoner}_summonerLevel' for summoner in range(5)],
@@ -76,6 +78,7 @@ print(df['team_1_wr_skew'].iloc[0])
 print(df[feature_groups['team_1_wr']].iloc[0])
 # Binarize label
 lb = LabelBinarizer()
+df[['winner']] = df[['winner']].fillna(100.)
 df[['winner']] = lb.fit_transform(df[['winner']])
 
 # Save

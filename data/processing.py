@@ -3,11 +3,13 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+data_path = '../data_mining/backup/'
+
 def process_filepair(suffix):
     eps = 1e-5
     # Process a pair of files matches_{suffix}.csv, summoners_{suffix}.csv
-    matches_file = f'matches_{suffix}.csv'
-    summoners_file = f'summoners_{suffix}.csv'
+    matches_file = f'{data_path}matches_{suffix}.csv'
+    summoners_file = f'{data_path}summoners_{suffix}.csv'
     
     matches_df = pd.read_csv(matches_file, index_col='gameId')
     summoners_df = pd.read_csv(summoners_file, index_col='puuid')
@@ -36,8 +38,14 @@ def process_filepair(suffix):
         matches_df = matches_df.join(wr_column,on=f'summoner_{summoner}_puuid')
 
         # Summoner / champion mastery lp
+        def f(row):
+            try:
+                return summoners_df.at[row[f'summoner_{summoner}_puuid'], str(int(row[f'summoner_{summoner}_championId']))]
+            except ValueError:
+                print(f'{suffix} : Summoner {summoner}, champion {row[f"summoner_{summoner}_championId"]}')
+                return np.nan
         matches_df[f'summoner_{summoner}_champion_mastery'] = matches_df.apply(
-            lambda row: summoners_df.at[row[f'summoner_{summoner}_puuid'], str(row[f'summoner_{summoner}_championId'])],
+            f,
             axis=1
         )
 
@@ -52,4 +60,5 @@ def create_dataset(suffix_list,name='raw_dataset.csv'):
     dataset.to_csv(name)
     print(dataset.shape)
 
-create_dataset(['euw1','euw1_2','na1','kr'])
+create_dataset(['euw_1']) #,'euw_2','euw_3','euw_4','kr_1','kr_2','kr_3','na_2','na_3'])
+
